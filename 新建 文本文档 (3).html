@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全A下跌行情主线判断工具（加权评分版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            padding: 30px 15px;
+            color: #333;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 28px;
+            color: #1a3b5d;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        .rule-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            padding: 20px 25px;
+            margin-bottom: 18px;
+            transition: all 0.2s;
+        }
+        .rule-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .rule-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1a3b5d;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .rule-title .num {
+            display: inline-block;
+            width: 26px;
+            height: 26px;
+            line-height: 26px;
+            text-align: center;
+            background: #2c7be5;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .rule-title .weight {
+            margin-left: auto;
+            font-size: 13px;
+            color: #999;
+            font-weight: normal;
+        }
+        .form-group {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .form-group label {
+            width: 280px;
+            font-size: 14px;
+            color: #555;
+        }
+        .form-group input[type="number"] {
+            width: 180px;
+            padding: 7px 10px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input[type="number"]:focus {
+            border-color: #2c7be5;
+        }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+        .radio-group label {
+            width: auto;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .unit {
+            margin-left: 8px;
+            color: #999;
+            font-size: 13px;
+        }
+        .warn-item {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+        .btn-group {
+            text-align: center;
+            margin: 30px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 40px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #2c7be5;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #1a68d1;
+        }
+        .btn-reset {
+            background: #e4e7ed;
+            color: #606266;
+        }
+        .btn-reset:hover {
+            background: #d3d6dc;
+        }
+        #result {
+            display: none;
+        }
+        .result-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            padding: 25px 30px;
+            margin-bottom: 20px;
+        }
+        .score-box {
+            text-align: center;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .score-box .total-score {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .score-box .score-label {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .score-high {
+            background: #e8f8f0;
+            color: #27ae60;
+        }
+        .score-mid {
+            background: #f0f7ff;
+            color: #2c7be5;
+        }
+        .score-low {
+            background: #fff7e6;
+            color: #f39c12;
+        }
+        .score-no {
+            background: #fdecea;
+            color: #e74c3c;
+        }
+        .result-detail h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .detail-list {
+            list-style: none;
+        }
+        .detail-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .detail-list li:last-child {
+            border-bottom: none;
+        }
+        .score-tag {
+            display: inline-block;
+            min-width: 60px;
+            padding: 3px 8px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .tag-full {
+            background: #e8f8f0;
+            color: #27ae60;
+        }
+        .tag-part {
+            background: #fff7e6;
+            color: #f39c12;
+        }
+        .tag-zero {
+            background: #fdecea;
+            color: #e74c3c;
+        }
+        .core-tag {
+            color: #e74c3c;
+            font-size: 12px;
+        }
+        .desc-text {
+            color: #666;
+            flex: 1;
+            min-width: 300px;
+        }
+        .risk-tip {
+            background: #fff7e6;
+            border-left: 4px solid #f39c12;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #8a6d3b;
+            border-radius: 0 4px 4px 0;
+        }
+        .opinion-box {
+            background: #f0f7ff;
+            border-left: 4px solid #2c7be5;
+            padding: 12px 15px;
+            margin-top: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1a3b5d;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>全A下跌行情主线判断工具</h1>
+            <p>加权评分制 · 100分满分 · 分高/中/低三档判定主线概率</p>
+        </div>
+
+        <!-- 规则1 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">1</span>
+                大市成交额门槛
+                <span class="weight">权重：12分（核心）</span>
+            </div>
+            <div class="form-group">
+                <label>全A前5日平均成交额</label>
+                <input type="number" id="avgAmount" step="0.01" placeholder="请输入数值">
+                <span class="unit">万亿（达标线：≥1万亿）</span>
+            </div>
+        </div>
+
+        <!-- 规则2 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">2</span>
+                板块容量与成交占比
+                <span class="weight">权重：15分（核心）</span>
+            </div>
+            <div class="form-group">
+                <label>主线逻辑对应板块成交额占比</label>
+                <input type="number" id="ratio" step="0.1" placeholder="请输入数值">
+                <span class="unit">%（达标线：≥10%）</span>
+            </div>
+            <div class="form-group">
+                <label>核心板块流通市值</label>
+                <input type="number" id="marketCap" step="100" placeholder="请输入数值">
+                <span class="unit">亿（达标线：＞5000亿）</span>
+            </div>
+        </div>
+
+        <!-- 规则3 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">3</span>
+                梯队完整性验证
+                <span class="weight">权重：18分（核心）</span>
+            </div>
+            <div class="form-group">
+                <label>是否存在≥1000亿流通市值的容量中军</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="hasZhongjun" value="1"> 是</label>
+                    <label><input type="radio" name="hasZhongjun" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>中军区间涨幅是否为正且起到稳盘作用</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="zhongjunUp" value="1"> 是</label>
+                    <label><input type="radio" name="zhongjunUp" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>是否存在≥300亿自由流通市值的领涨龙头</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="hasLongtou" value="1"> 是</label>
+                    <label><input type="radio" name="hasLongtou" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>大盘下跌区间内龙头累计涨幅≥15%</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="longtouUp" value="1"> 是</label>
+                    <label><input type="radio" name="longtouUp" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>龙头上涨是否非连续一字板</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="notYizi" value="1"> 是</label>
+                    <label><input type="radio" name="notYizi" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>是否形成普涨效应与分支轮动补涨</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="hasLundong" value="1"> 是</label>
+                    <label><input type="radio" name="hasLundong" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group warn-item">
+                <label>【排除项】是否全为100亿以下小票且中军弱于大盘</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="allSmall" value="1"> 是（纯情绪题材）</label>
+                    <label><input type="radio" name="allSmall" value="0"> 否</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 规则4 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">4</span>
+                板块逆势上涨强度
+                <span class="weight">权重：18分（核心）</span>
+            </div>
+            <div class="form-group">
+                <label>大盘下跌区间核心板块累计绝对收益为正</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="absUp" value="1"> 是</label>
+                    <label><input type="radio" name="absUp" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>板块收益在全行业/主题中排名前3</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="rankTop3" value="1"> 是</label>
+                    <label><input type="radio" name="rankTop3" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>大盘横盘/上涨时，板块涨幅≥全A涨幅的2倍</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="leadRise" value="1"> 是</label>
+                    <label><input type="radio" name="leadRise" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>是否符合惜售特征（回调缩量、卖盘稀薄）</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="xishou" value="1"> 是</label>
+                    <label><input type="radio" name="xishou" value="0"> 否</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 规则5 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">5</span>
+                逻辑硬核度与不可证伪性
+                <span class="weight">权重：22分（核心·最高权重）</span>
+            </div>
+            <div class="form-group">
+                <label>主线逻辑与当期宏观/政策导向高度绑定</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="logicBind" value="1"> 是</label>
+                    <label><input type="radio" name="logicBind" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>短期1-2个月内无法被数据证伪</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="notFalsify" value="1"> 是</label>
+                    <label><input type="radio" name="notFalsify" value="0"> 否</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 规则6 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">6</span>
+                资金聚集验证（辅助）
+                <span class="weight">权重：7分（辅助）</span>
+            </div>
+            <div class="form-group">
+                <label>上涨启动日较前一日放量20%以上</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="firstVolume" value="1"> 是</label>
+                    <label><input type="radio" name="firstVolume" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>后续持续温和放量/缩量惜售上涨</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="keepVolume" value="1"> 是</label>
+                    <label><input type="radio" name="keepVolume" value="0"> 否</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 规则7 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">7</span>
+                介入时机与试错风控（辅助）
+                <span class="weight">权重：5分（辅助）</span>
+            </div>
+            <div class="form-group">
+                <label>全A连续下跌第2天且累计跌幅≥3%</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="dropCondition" value="1"> 是</label>
+                    <label><input type="radio" name="dropCondition" value="0"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>本轮下跌行情已试错次数</label>
+                <input type="number" id="tryTimes" min="0" max="10" placeholder="请输入次数">
+                <span class="unit">次（安全线：≤2次）</span>
+            </div>
+        </div>
+
+        <!-- 规则8 -->
+        <div class="rule-card">
+            <div class="rule-title">
+                <span class="num">8</span>
+                外部数据交叉验证（辅助）
+                <span class="weight">权重：3分（辅助）</span>
+            </div>
+            <div class="form-group">
+                <label>对应主线的外部锚是否验证上涨趋势</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="externalCheck" value="1"> 是</label>
+                    <label><input type="radio" name="externalCheck" value="0"> 否</label>
+                </div>
+            </div>
+            <div style="font-size:13px; color:#999; margin-top:8px;">
+                说明：科技线看美股半导体/纳指；高股息看国债期货；周期品看对应商品期货
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="judgeMainLine()">开始评分判定</button>
+            <button class="btn btn-reset" onclick="resetForm()">重置表单</button>
+        </div>
+
+        <!-- 结果区域 -->
+        <div id="result">
+            <div class="result-card">
+                <div id="scoreBox" class="score-box">
+                    <div class="score-label">综合评分</div>
+                    <div class="total-score" id="totalScore">0 / 100</div>
+                    <div class="score-label" id="levelText">待判定</div>
+                </div>
+
+                <div class="result-detail">
+                    <h3>逐项规则得分详情</h3>
+                    <ul class="detail-list" id="detailList"></ul>
+                </div>
+
+                <div class="opinion-box" id="opinionBox"></div>
+                <div class="risk-tip" id="riskTip"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取单选值
+        function getRadioValue(name) {
+            const radios = document.getElementsByName(name);
+            for (let radio of radios) {
+                if (radio.checked) {
+                    return parseInt(radio.value);
+                }
+            }
+            return null;
+        }
+
+        // 主判定函数
+        function judgeMainLine() {
+            const details = [];
+            let totalScore = 0;
+            let coreScore = 0;
+
+            // ========== 一票否决项先检查 ==========
+            const allSmall = getRadioValue('allSmall');
+            if (allSmall === 1) {
+                renderVetoResult('纯情绪题材，不属于主线',
+                    '触发排除规则：领涨全为100亿以下小票，且千亿中军走势弱于大盘，属于典型游资炒作的情绪题材，下跌市中补跌风险极高，无主线持续性，坚决不参与。');
+                return;
+            }
+
+            // ========== 规则1：大市成交额门槛（12分） ==========
+            const avgAmount = parseFloat(document.getElementById('avgAmount').value);
+            let r1Score = 0;
+            let r1Desc = '';
+            if (isNaN(avgAmount)) {
+                r1Score = 0;
+                r1Desc = '未填写成交额数据';
+            } else if (avgAmount >= 1) {
+                r1Score = 12;
+                r1Desc = '前5日日均成交额≥1万亿，市场活跃度充足，完全支撑主线行情';
+            } else if (avgAmount >= 0.85) {
+                r1Score = 6;
+                r1Desc = '成交额在0.85-1万亿区间，活跃度尚可，勉强支撑结构性主线';
+            } else {
+                r1Score = 0;
+                r1Desc = '成交额低于0.85万亿，市场流动性不足，难有持续性主线';
+            }
+            totalScore += r1Score;
+            coreScore += r1Score;
+            details.push({
+                name: '规则1：大市成交额门槛',
+                score: r1Score,
+                full: 12,
+                core: true,
+                desc: r1Desc
+            });
+
+            // ========== 规则2：板块容量与成交占比（15分） ==========
+            const ratio = parseFloat(document.getElementById('ratio').value);
+            const marketCap = parseFloat(document.getElementById('marketCap').value);
+            let r2RatioScore = 0;
+            let r2CapScore = 0;
+            let r2RatioDesc = '';
+            let r2CapDesc = '';
+
+            // 成交占比评分（10分）
+            if (isNaN(ratio)) {
+                r2RatioScore = 0;
+                r2RatioDesc = '未填写成交占比';
+            } else if (ratio >= 10) {
+                r2RatioScore = 10;
+                r2RatioDesc = '成交占比≥10%，达到大主题级资金聚集度';
+            } else if (ratio >= 7) {
+                r2RatioScore = 5;
+                r2RatioDesc = '成交占比在7%-10%区间，达到单行业级主线标准';
+            } else {
+                r2RatioScore = 0;
+                r2RatioDesc = '成交占比低于7%，资金聚集度不足';
+            }
+
+            // 流通市值评分（5分）
+            if (isNaN(marketCap)) {
+                r2CapScore = 0;
+                r2CapDesc = '未填写板块市值';
+            } else if (marketCap > 5000) {
+                r2CapScore = 5;
+                r2CapDesc = '核心板块市值超5000亿，大资金可自由进出';
+            } else if (marketCap >= 3000) {
+                r2CapScore = 2;
+                r2CapDesc = '市值在3000-5000亿区间，容量有限，仅中小资金参与';
+            } else {
+                r2CapScore = 0;
+                r2CapDesc = '市值低于3000亿，容量过小，容不下机构大资金';
+            }
+
+            const r2Total = r2RatioScore + r2CapScore;
+            totalScore += r2Total;
+            coreScore += r2Total;
+            details.push({
+                name: '规则2：板块容量与成交占比',
+                score: r2Total,
+                full: 15,
+                core: true,
+                desc: `${r2RatioDesc}；${r2CapDesc}`
+            });
+
+            // ========== 规则3：梯队完整性（18分） ==========
+            const hasZhongjun = getRadioValue('hasZhongjun');
+            const zhongjunUp = getRadioValue('zhongjunUp');
+            const hasLongtou = getRadioValue('hasLongtou');
+            const longtouUp = getRadioValue('longtouUp');
+            const notYizi = getRadioValue('notYizi');
+            const hasLundong = getRadioValue('hasLundong');
+
+            let zhongjunScore = (hasZhongjun === 1 && zhongjunUp === 1) ? 5 : (hasZhongjun === 1 ? 2 : 0);
+            let longtouScore = (hasLongtou === 1 && longtouUp === 1 && notYizi === 1) ? 7 : (hasLongtou === 1 ? 3 : 0);
+            let lundongScore = hasLundong === 1 ? 6 : 0;
+            const r3Total = zhongjunScore + longtouScore + lundongScore;
+
+            let r3Desc = '';
+            if (r3Total === 18) {
+                r3Desc = '中军稳盘、龙头领涨、后排补涨轮动，梯队完整健康，是标准主线结构';
+            } else if (r3Total >= 10) {
+                r3Desc = '梯队基本成型，但存在部分瑕疵（如龙头弹性不足、轮动效应弱）';
+            } else {
+                r3Desc = '梯队结构不完整，独苗行情特征明显，持续性存疑';
+            }
+
+            totalScore += r3Total;
+            coreScore += r3Total;
+            details.push({
+                name: '规则3：梯队完整性验证',
+                score: r3Total,
+                full: 18,
+                core: true,
+                desc: r3Desc
+            });
+
+            // ========== 规则4：逆势上涨强度（18分） ==========
+            const absUp = getRadioValue('absUp');
+            const rankTop3 = getRadioValue('rankTop3');
+            const leadRise = getRadioValue('leadRise');
+            const xishou = getRadioValue('xishou');
+
+            const absScore = absUp === 1 ? 6 : 0;
+            const rankScore = rankTop3 === 1 ? 4 : 0;
+            const leadScore = leadRise === 1 ? 4 : 0;
+            const xishouScore = xishou === 1 ? 4 : 0;
+            const r4Total = absScore + rankScore + leadScore + xishouScore;
+
+            let r4Desc = '';
+            if (r4Total === 18) {
+                r4Desc = '逆势正收益、领涨性强、筹码惜售，完全符合下跌市主线的价量特征';
+            } else if (r4Total >= 10) {
+                r4Desc = '逆势抗性尚可，但进攻性或筹码稳定性存在不足';
+            } else {
+                r4Desc = '逆势表现弱，无明显领涨效应，不具备主线特征';
+            }
+
+            totalScore += r4Total;
+            coreScore += r4Total;
+            details.push({
+                name: '规则4：板块逆势上涨强度',
+                score: r4Total,
+                full: 18,
+                core: true,
+                desc: r4Desc
+            });
+
+            // ========== 规则5：逻辑硬核度（22分，最高权重） ==========
+            const logicBind = getRadioValue('logicBind');
+            const notFalsify = getRadioValue('notFalsify');
+            const bindScore = logicBind === 1 ? 12 : 0;
+            const falsifyScore = notFalsify === 1 ? 10 : 0;
+            const r5Total = bindScore + falsifyScore;
+
+            // 逻辑完全不成立，半否决
+            if (r5Total < 5) {
+                renderVetoResult('低概率主线，逻辑基础薄弱',
+                    '核心逻辑不成立：既无宏观/产业政策支撑，短期又极易被证伪，属于无本之木的概念炒作，下跌市中几乎没有持续性，不建议参与。');
+                return;
+            }
+
+            let r5Desc = '';
+            if (r5Total === 22) {
+                r5Desc = '逻辑高度绑定产业趋势/政策导向，且1-2个月内无法证伪，具备长期发酵基础';
+            } else if (r5Total >= 12) {
+                r5Desc = '逻辑基本成立，但催化密度或不可证伪周期略有不足';
+            } else {
+                r5Desc = '逻辑偏薄弱，更多依赖事件驱动，持续性有限';
+            }
+
+            totalScore += r5Total;
+            coreScore += r5Total;
+            details.push({
+                name: '规则5：逻辑硬核度与不可证伪性',
+                score: r5Total,
+                full: 22,
+                core: true,
+                desc: r5Desc
+            });
+
+            // ========== 规则6：资金聚集验证（7分，辅助） ==========
+            const firstVolume = getRadioValue('firstVolume');
+            const keepVolume = getRadioValue('keepVolume');
+            const firstScore = firstVolume === 1 ? 3 : 0;
+            const keepScore = keepVolume === 1 ? 4 : 0;
+            const r6Total = firstScore + keepScore;
+
+            let r6Desc = '';
+            if (r6Total === 7) {
+                r6Desc = '放量启动+持续健康量能，资金进场迹象明确';
+            } else if (r6Total > 0) {
+                r6Desc = '资金信号不完整，或仅有单日脉冲无持续性';
+            } else {
+                r6Desc = '无量空涨或放量出货，资金聚集效应弱';
+            }
+
+            totalScore += r6Total;
+            details.push({
+                name: '规则6：资金聚集验证',
+                score: r6Total,
+                full: 7,
+                core: false,
+                desc: r6Desc
+            });
+
+            // ========== 规则7：介入时机与风控（5分，辅助） ==========
+            const dropCondition = getRadioValue('dropCondition');
+            const tryTimes = parseInt(document.getElementById('tryTimes').value);
+            let dropScore = dropCondition === 1 ? 3 : 0;
+            let tryScore = 0;
+            if (!isNaN(tryTimes)) {
+                if (tryTimes <= 2) tryScore = 2;
+                else if (tryTimes <= 3) tryScore = 1;
+                else tryScore = 0;
+            }
+            const r7Total = dropScore + tryScore;
+
+            let r7Desc = '';
+            if (r7Total === 5) {
+                r7Desc = '处于左侧黄金介入点，试错次数在安全范围内，赔率高';
+            } else if (r7Total > 0) {
+                r7Desc = '介入时机一般，或试错次数接近上限，需控制仓位';
+            } else {
+                r7Desc = '介入时点不佳，或试错次数超标，风控压力大';
+            }
+
+            totalScore += r7Total;
+            details.push({
+                name: '规则7：介入时机与试错风控',
+                score: r7Total,
+                full: 5,
+                core: false,
+                desc: r7Desc
+            });
+
+            // ========== 规则8：外部验证（3分，辅助） ==========
+            const externalCheck = getRadioValue('externalCheck');
+            const r8Total = externalCheck === 1 ? 3 : 0;
+            const r8Desc = r8Total === 3 ? '外部锚同步验证，产业逻辑共振性强' : '外部验证不足，或与外部走势背离，需警惕独立性风险';
+
+            totalScore += r8Total;
+            details.push({
+                name: '规则8：外部数据交叉验证',
+                score: r8Total,
+                full: 3,
+                core: false,
+                desc: r8Desc
+            });
+
+            // ========== 最终档位判定 ==========
+            let level = '';
+            let levelClass = '';
+            let opinion = '';
+            let risk = '';
+
+            if (totalScore >= 75 && coreScore >= 65 && r5Total >= 15) {
+                level = '高概率主线';
+                levelClass = 'score-high';
+                opinion = '核心规则绝大多数达标，逻辑硬、容量足、结构完整，是下跌市中确定性极强的主线机会。';
+                risk = '操作建议：可按策略分批介入，总仓位控制在5-7成，严格设置止损线（跌破板块20日线止盈止损），大盘企稳后可加仓至主线核心标的。';
+            } else if (totalScore >= 55 && coreScore >= 45 && r5Total >= 10) {
+                level = '中概率主线';
+                levelClass = 'score-mid';
+                opinion = '核心规则大部分满足，主线雏形已现，存在少量瑕疵（如容量略小、梯队不够完整），具备一定持续性。';
+                risk = '操作建议：轻仓试错参与，总仓位不超过3成，优先选择中军和核心龙头，规避后排小票；若后续验证强化（成交占比提升、梯队补全）再加仓，若出现技术破位立即离场。';
+            } else {
+                level = '低概率主线';
+                levelClass = 'score-low';
+                opinion = '核心规则缺失较多，要么逻辑不够硬，要么结构/容量不达标，大概率是短期反弹或局部题材，持续性差。';
+                risk = '操作建议：不建议主动参与，观望为主；若持有相关标的，逢高减仓，避免大盘下跌过程中补跌风险。耐心等待更明确的主线信号或大盘企稳后再操作。';
+            }
+
+            // 渲染结果
+            document.getElementById('totalScore').innerText = `${totalScore} / 100`;
+            document.getElementById('levelText').innerText = `判定结果：${level}（核心规则得分：${coreScore}/85）`;
+            document.getElementById('scoreBox').className = `score-box ${levelClass}`;
+            document.getElementById('opinionBox').innerHTML = `<strong>综合判断：</strong>${opinion}`;
+            document.getElementById('riskTip').innerHTML = `<strong>操作提示：</strong>${risk}`;
+
+            // 渲染详情列表
+            const list = document.getElementById('detailList');
+            list.innerHTML = '';
+            details.forEach(item => {
+                const li = document.createElement('li');
+                let tagClass = 'tag-zero';
+                if (item.score === item.full) tagClass = 'tag-full';
+                else if (item.score > 0) tagClass = 'tag-part';
+
+                const coreTag = item.core ? '<span class="core-tag">核心</span>' : '<span style="color:#999;font-size:12px;">辅助</span>';
+
+                li.innerHTML = `
+                    <span class="score-tag ${tagClass}">${item.score}/${item.full}</span>
+                    <span style="font-weight:500;">${item.name}</span>
+                    ${coreTag}
+                    <span class="desc-text">${item.desc}</span>
+                `;
+                list.appendChild(li);
+            });
+
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 渲染否决结果
+        function renderVetoResult(title, desc) {
+            document.getElementById('totalScore').innerText = '— / 100';
+            document.getElementById('levelText').innerText = `判定结果：${title}`;
+            document.getElementById('scoreBox').className = 'score-box score-no';
+            document.getElementById('opinionBox').innerHTML = `<strong>核心原因：</strong>${desc}`;
+            document.getElementById('riskTip').innerHTML = '<strong>风险提示：</strong>下跌市中纯情绪题材波动极大，极易出现A杀补跌，宁可错过不可做错，坚决规避无逻辑、无容量、纯小票炒作的品种。';
+            document.getElementById('detailList').innerHTML = '';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+            document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+            document.getElementById('result').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
