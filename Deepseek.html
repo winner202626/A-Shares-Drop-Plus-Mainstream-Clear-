@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全A下跌主线·加权评分判定器</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f4fb;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            padding: 30px 35px;
+            box-shadow: 0 12px 40px rgba(0,20,50,0.10);
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-top: 0;
+            color: #0a1e3c;
+            border-bottom: 2px solid #e6edf6;
+            padding-bottom: 16px;
+        }
+        h1 small { font-weight: 400; font-size: 16px; color: #5b7293; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+            margin: 20px 0;
+        }
+        .field-group {
+            background: #f8fbff;
+            border-radius: 16px;
+            padding: 16px 18px;
+            border: 1px solid #e3ebf7;
+            transition: 0.2s;
+        }
+        .field-group:hover { border-color: #b6ccf0; background: #f5f9ff; }
+        .field-group h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f3a6b;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .field-group h3 .badge {
+            background: #dce5f2;
+            border-radius: 30px;
+            padding: 0 12px;
+            font-size: 12px;
+            color: #1f3a6b;
+            font-weight: 500;
+        }
+        .field-group h3 .weight {
+            margin-left: auto;
+            font-size: 13px;
+            background: #eef3fc;
+            padding: 2px 12px;
+            border-radius: 30px;
+            color: #2b4b7a;
+        }
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .field-row label {
+            font-size: 14px;
+            color: #2c3e5c;
+            font-weight: 500;
+        }
+        .field-row input[type="number"],
+        .field-row input[type="text"] {
+            width: 100px;
+            padding: 6px 10px;
+            border: 1px solid #ccd9ec;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            text-align: right;
+        }
+        .field-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #1a5cff;
+            margin-left: 8px;
+        }
+        .field-row .unit { font-size: 13px; color: #6d7f9c; margin-left: 4px; }
+        .inline-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .select-style {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccd9ec;
+            background: white;
+            font-size: 14px;
+            width: 100%;
+        }
+        .btn {
+            background: #1a5cff;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 40px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+            margin: 20px 0 10px;
+            width: 100%;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 14px rgba(26,92,255,0.25);
+        }
+        .btn:hover { background: #0f4ad6; transform: scale(1.01); }
+        .btn:active { transform: scale(0.97); }
+
+        .result-area {
+            margin-top: 25px;
+            border-top: 2px solid #e6edf6;
+            padding-top: 22px;
+        }
+        .result-summary {
+            font-size: 22px;
+            font-weight: 700;
+            padding: 18px 24px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .result-summary .score { font-size: 34px; letter-spacing: 1px; }
+        .result-summary.high { background: #e3f5e8; color: #0d6320; border-left: 8px solid #0d7a2b; }
+        .result-summary.medium { background: #fff6e0; color: #8a6100; border-left: 8px solid #e6a800; }
+        .result-summary.low { background: #fde8e8; color: #a61d1d; border-left: 8px solid #c62a2a; }
+
+        .result-detail {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 20px;
+            font-size: 14px;
+            background: #fafcff;
+            padding: 16px 18px;
+            border-radius: 16px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 4px;
+            border-bottom: 1px dashed #e3ebf7;
+        }
+        .result-item .label { color: #334e77; font-weight: 500; }
+        .result-item .status { font-weight: 600; }
+        .status.high-score { color: #0d7a2b; }
+        .status.medium-score { color: #b87c00; }
+        .status.low-score { color: #b33b3b; }
+
+        .extra-note {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #1f3a6b;
+            background: #eef4fe;
+            padding: 14px 20px;
+            border-radius: 14px;
+            border-left: 5px solid #1a5cff;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #4d6690;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .legend span::before { content: "●"; margin-right: 6px; }
+        .legend .l-high::before { color: #0d7a2b; }
+        .legend .l-medium::before { color: #e6a800; }
+        .legend .l-low::before { color: #c62a2a; }
+
+        @media (max-width: 700px) {
+            .container { padding: 16px; }
+            .grid { grid-template-columns: 1fr; }
+            .result-detail { grid-template-columns: 1fr; }
+            .field-row input[type="number"] { width: 80px; }
+            .result-summary { flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 全A下跌·主线加权评分器 <small>放宽容错 · 概率分级</small></h1>
+
+    <form id="judgeForm" onsubmit="return false;">
+        <div class="grid">
+
+            <!-- 1. 流动性 (权重 10分) -->
+            <div class="field-group">
+                <h3>① 大盘流动性 <span class="weight">权重 10</span></h3>
+                <div class="field-row">
+                    <label>前5日平均成交额</label>
+                    <div><input type="number" id="marketAvgVol" value="12000" step="100"> <span class="unit">亿元</span></div>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">≥ 10000 亿 (满分)</div>
+            </div>
+
+            <!-- 2. 板块容量 (权重 15分) -->
+            <div class="field-group">
+                <h3>② 板块容量 <span class="weight">权重 15</span></h3>
+                <div class="field-row">
+                    <label>板块成交额占比</label>
+                    <div><input type="number" id="sectorRatio" value="12" step="0.5"> <span class="unit">%</span></div>
+                </div>
+                <div class="field-row">
+                    <label>核心板块流通市值</label>
+                    <div><input type="number" id="sectorMktCap" value="6000" step="100"> <span class="unit">亿元</span></div>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">占比≥10% (5分) | 市值>5000亿 (10分)</div>
+            </div>
+
+            <!-- 3. 梯队结构 (权重 20分) -->
+            <div class="field-group">
+                <h3>③ 梯队结构 <span class="weight">权重 20</span></h3>
+                <div class="field-row">
+                    <label>容量中军 (市值/涨幅)</label>
+                    <div><input type="number" id="zhongjunMkt" value="1200" step="50" style="width:70px;">亿 / <input type="number" id="zhongjunReturn" value="5" step="0.5" style="width:60px;">%</div>
+                </div>
+                <div class="field-row">
+                    <label>领涨龙头 (市值/涨幅)</label>
+                    <div><input type="number" id="longtouMkt" value="350" step="10" style="width:70px;">亿 / <input type="number" id="longtouReturn" value="18" step="1" style="width:60px;">%</div>
+                </div>
+                <div class="field-row">
+                    <label>龙头非一字板</label>
+                    <input type="checkbox" id="notYizi" checked>
+                </div>
+                <div class="field-row">
+                    <label>其他个股赚效&补涨</label>
+                    <input type="checkbox" id="otherProfit" checked>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">中军≥1000亿且涨幅>0 (5分) | 龙头≥300亿且涨幅≥15% (5分) | 非一字板 (5分) | 有赚效 (5分)</div>
+            </div>
+
+            <!-- 4. 板块强度 (权重 20分) -->
+            <div class="field-group">
+                <h3>④ 板块强度 <span class="weight">权重 20</span></h3>
+                <div class="field-row">
+                    <label>板块绝对收益</label>
+                    <div><input type="number" id="sectorAbsReturn" value="3" step="0.5"> <span class="unit">%</span></div>
+                </div>
+                <div class="field-row">
+                    <label>行业/主题排名</label>
+                    <div><input type="number" id="sectorRank" value="2" step="1" min="1" max="30"> <span class="unit">名</span></div>
+                </div>
+                <div class="field-row">
+                    <label>横盘/上涨时板块涨幅</label>
+                    <div><input type="number" id="sectorUpReturn" value="5" step="0.5"> <span class="unit">%</span></div>
+                </div>
+                <div class="field-row">
+                    <label>同期全A涨幅</label>
+                    <div><input type="number" id="allAUpReturn" value="2" step="0.5"> <span class="unit">%</span></div>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">绝对收益>0 (5分) | 排名≤3 (5分) | 板块涨幅≥2倍全A (10分)</div>
+            </div>
+
+            <!-- 5. 逻辑属性 (权重 15分) -->
+            <div class="field-group">
+                <h3>⑤ 逻辑不可证伪 <span class="weight">权重 15</span></h3>
+                <div class="field-row">
+                    <label>绑定宏观/政策</label>
+                    <input type="checkbox" id="logicMacro" checked>
+                </div>
+                <div class="field-row">
+                    <label>1-2月不可证伪</label>
+                    <input type="checkbox" id="logicUnfalsifiable" checked>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">每项各占 7.5分</div>
+            </div>
+
+            <!-- 6. 资金聚集 (权重 10分) -->
+            <div class="field-group">
+                <h3>⑥ 资金聚集 <span class="weight">权重 10</span></h3>
+                <div class="field-row">
+                    <label>当日较前日放量</label>
+                    <div><input type="number" id="volumeSpike" value="25" step="1"> <span class="unit">%</span></div>
+                </div>
+                <div class="field-row">
+                    <label>后续持续温和放量</label>
+                    <input type="checkbox" id="volumeGentle" checked>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">放量≥20% (5分) | 后续温和 (5分)</div>
+            </div>
+
+            <!-- 7. 时机 & 证伪 (权重 5分) -->
+            <div class="field-group">
+                <h3>⑦ 时机 & 证伪 <span class="weight">权重 5</span></h3>
+                <div class="field-row">
+                    <label>全A连续下跌天数</label>
+                    <div><input type="number" id="dropDays" value="2" step="1" min="1" max="10"> <span class="unit">天</span></div>
+                </div>
+                <div class="field-row">
+                    <label>全A累计跌幅</label>
+                    <div><input type="number" id="dropPct" value="-3.5" step="0.5"> <span class="unit">%</span></div>
+                </div>
+                <div class="field-row">
+                    <label>主线在第2天依然上涨</label>
+                    <input type="checkbox" id="mainUpOnDay2" checked>
+                </div>
+                <div class="field-row">
+                    <label>前一日板块下跌</label>
+                    <input type="checkbox" id="prevDayDown">
+                </div>
+                <div class="field-row">
+                    <label>次日收复阴线实体一半</label>
+                    <input type="checkbox" id="recoverHalf">
+                </div>
+                <div style="font-size:13px; color:#5a7395;">时机完美 (3分) | 未触发证伪 (2分)</div>
+            </div>
+
+            <!-- 8. 试错 & 外盘 (权重 5分) -->
+            <div class="field-group">
+                <h3>⑧ 试错 & 外盘 <span class="weight">权重 5</span></h3>
+                <div class="field-row">
+                    <label>当前试错次数</label>
+                    <div><input type="number" id="trialCount" value="0" step="1" min="0" max="2"> <span class="unit">次</span></div>
+                </div>
+                <div style="margin:8px 0; font-weight:500; font-size:14px;">逻辑类型</div>
+                <div class="field-row">
+                    <select id="logicType" class="select-style">
+                        <option value="tech">科技 (纳指100盘前)</option>
+                        <option value="dividend">高股息/防御 (10年期国债期货)</option>
+                        <option value="commodity">涨价/周期 (南华商品指数)</option>
+                    </select>
+                </div>
+                <div class="field-row" style="margin-top:6px;">
+                    <label id="foreignLabel">纳指100盘前涨幅</label>
+                    <div><input type="number" id="foreignValue" value="0.8" step="0.1"> <span class="unit">%</span></div>
+                </div>
+                <div style="font-size:13px; color:#5a7395;">试错<2次 (2分) | 外盘>0 (3分)</div>
+            </div>
+        </div>
+
+        <button type="button" class="btn" id="judgeBtn">⚖️ 加权评分 · 判定主线概率</button>
+    </form>
+
+    <div class="result-area" id="resultArea" style="display:none;">
+        <div id="resultSummary" class="result-summary">
+            <span id="resultLabel">判定结果</span>
+            <span class="score" id="resultScore">0 / 100</span>
+        </div>
+        <div class="legend">
+            <span class="l-high">高概率 (≥70分)</span>
+            <span class="l-medium">中概率 (50~69分)</span>
+            <span class="l-low">低概率 (&lt;50分)</span>
+        </div>
+        <div class="result-detail" id="resultDetail"></div>
+        <div class="extra-note" id="extraNote"></div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const judgeBtn = document.getElementById('judgeBtn');
+        const resultArea = document.getElementById('resultArea');
+        const resultLabel = document.getElementById('resultLabel');
+        const resultScore = document.getElementById('resultScore');
+        const resultSummary = document.getElementById('resultSummary');
+        const resultDetail = document.getElementById('resultDetail');
+        const extraNote = document.getElementById('extraNote');
+        const logicTypeSelect = document.getElementById('logicType');
+        const foreignLabel = document.getElementById('foreignLabel');
+
+        // 切换外盘名称
+        logicTypeSelect.addEventListener('change', function() {
+            const type = this.value;
+            if (type === 'tech') foreignLabel.textContent = '纳指100盘前涨幅';
+            else if (type === 'dividend') foreignLabel.textContent = '10年期国债期货涨幅';
+            else if (type === 'commodity') foreignLabel.textContent = '南华商品指数涨幅';
+        });
+
+        function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+        function getCheck(id) { return document.getElementById(id).checked; }
+
+        function judge() {
+            // ---- 读取数据 ----
+            const marketAvgVol = getVal('marketAvgVol');
+            const sectorRatio = getVal('sectorRatio');
+            const sectorMktCap = getVal('sectorMktCap');
+            const zhongjunMkt = getVal('zhongjunMkt');
+            const zhongjunReturn = getVal('zhongjunReturn');
+            const longtouMkt = getVal('longtouMkt');
+            const longtouReturn = getVal('longtouReturn');
+            const notYizi = getCheck('notYizi');
+            const otherProfit = getCheck('otherProfit');
+            const sectorAbsReturn = getVal('sectorAbsReturn');
+            const sectorRank = getVal('sectorRank');
+            const sectorUpReturn = getVal('sectorUpReturn');
+            const allAUpReturn = getVal('allAUpReturn');
+            const logicMacro = getCheck('logicMacro');
+            const logicUnfalsifiable = getCheck('logicUnfalsifiable');
+            const volumeSpike = getVal('volumeSpike');
+            const volumeGentle = getCheck('volumeGentle');
+            const dropDays = getVal('dropDays');
+            const dropPct = getVal('dropPct');
+            const mainUpOnDay2 = getCheck('mainUpOnDay2');
+            const prevDayDown = getCheck('prevDayDown');
+            const recoverHalf = getCheck('recoverHalf');
+            const trialCount = getVal('trialCount');
+            const foreignValue = getVal('foreignValue');
+
+            // ---- 各项得分 ----
+            // 1. 流动性 (10分)
+            let score1 = marketAvgVol >= 10000 ? 10 : 0;
+
+            // 2. 板块容量 (15分)
+            let score2 = 0;
+            if (sectorRatio >= 10) score2 += 5;
+            if (sectorMktCap > 5000) score2 += 10;
+
+            // 3. 梯队结构 (20分)
+            let score3 = 0;
+            if (zhongjunMkt >= 1000 && zhongjunReturn > 0) score3 += 5;
+            if (longtouMkt >= 300 && longtouReturn >= 15) score3 += 5;
+            if (notYizi) score3 += 5;
+            if (otherProfit) score3 += 5;
+
+            // 4. 板块强度 (20分)
+            let score4 = 0;
+            if (sectorAbsReturn > 0) score4 += 5;
+            if (sectorRank <= 3) score4 += 5;
+            // 相对强度：横盘或上涨时，板块涨幅 ≥ 2倍全A涨幅 (占10分)
+            if (sectorUpReturn >= 2 * allAUpReturn) score4 += 10;
+
+            // 5. 逻辑不可证伪 (15分)
+            let score5 = 0;
+            if (logicMacro) score5 += 7.5;
+            if (logicUnfalsifiable) score5 += 7.5;
+
+            // 6. 资金聚集 (10分)
+            let score6 = 0;
+            if (volumeSpike >= 20) score6 += 5;
+            if (volumeGentle) score6 += 5;
+
+            // 7. 时机 & 证伪 (5分)
+            let score7 = 0;
+            // 时机完美：连跌第2天、跌幅≥3%、主线当天上涨
+            if (dropDays === 2 && dropPct <= -3 && mainUpOnDay2) score7 += 3;
+            // 未触发证伪：若前日跌且未收复一半，则证伪；否则给2分
+            if (!(prevDayDown && !recoverHalf)) score7 += 2;
+
+            // 8. 试错 & 外盘 (5分)
+            let score8 = 0;
+            if (trialCount < 2) score8 += 2;
+            if (foreignValue > 0) score8 += 3;
+
+            // 总分
+            const totalScore = score1 + score2 + score3 + score4 + score5 + score6 + score7 + score8;
+            const rounded = Math.round(totalScore);
+
+            // ---- 概率等级 ----
+            let level, levelText, levelClass;
+            if (rounded >= 70) {
+                level = 'high';
+                levelText = '🔵 高概率主线';
+                levelClass = 'high';
+            } else if (rounded >= 50) {
+                level = 'medium';
+                levelText = '🟡 中等概率主线';
+                levelClass = 'medium';
+            } else {
+                level = 'low';
+                levelText = '🔴 低概率主线';
+                levelClass = 'low';
+            }
+
+            // ---- 渲染结果 ----
+            resultArea.style.display = 'block';
+            resultSummary.className = `result-summary ${levelClass}`;
+            resultLabel.textContent = levelText;
+            resultScore.textContent = `${rounded} / 100`;
+
+            // 明细
+            const items = [
+                { label: '① 大盘流动性', score: score1, max: 10, desc: `前5日均量 ${marketAvgVol} 亿` },
+                { label: '② 板块容量', score: score2, max: 15, desc: `占比 ${sectorRatio}% / 市值 ${sectorMktCap} 亿` },
+                { label: '③ 梯队结构', score: score3, max: 20, desc: `中军${zhongjunMkt}亿/${zhongjunReturn}% 龙头${longtouMkt}亿/${longtouReturn}%` },
+                { label: '④ 板块强度', score: score4, max: 20, desc: `绝对收益${sectorAbsReturn}% 排名${sectorRank} 相对强度${sectorUpReturn} ≥ ${2*allAUpReturn}?` },
+                { label: '⑤ 逻辑不可证伪', score: score5, max: 15, desc: `宏观绑定${logicMacro?'✓':'✗'} 不可证伪${logicUnfalsifiable?'✓':'✗'}` },
+                { label: '⑥ 资金聚集', score: score6, max: 10, desc: `放量${volumeSpike}% 温和${volumeGentle?'✓':'✗'}` },
+                { label: '⑦ 时机&证伪', score: score7, max: 5, desc: `时机完美${dropDays===2&&dropPct<=-3&&mainUpOnDay2?'✓':'✗'} 证伪规避${!(prevDayDown&&!recoverHalf)?'✓':'✗'}` },
+                { label: '⑧ 试错&外盘', score: score8, max: 5, desc: `试错${trialCount}次 外盘${foreignValue}%` }
+            ];
+
+            let detailHtml = '';
+            items.forEach(item => {
+                const ratio = item.max > 0 ? (item.score / item.max) : 0;
+                let cls = 'low-score';
+                if (ratio >= 0.8) cls = 'high-score';
+                else if (ratio >= 0.5) cls = 'medium-score';
+                detailHtml += `
+                    <div class="result-item">
+                        <span class="label">${item.label}</span>
+                        <span class="status ${cls}">${item.score.toFixed(1)} / ${item.max} 分 <span style="font-weight:400;color:#5b7293;font-size:12px;margin-left:4px;">${item.desc}</span></span>
+                    </div>
+                `;
+            });
+            resultDetail.innerHTML = detailHtml;
+
+            // 操作建议
+            let advice = '';
+            if (level === 'high') {
+                advice = '✅ 各项条件综合评分优秀，主线特征明确。建议按计划执行试错建仓（首次≤20%），并严格执行证伪止损与终局退出纪律。';
+            } else if (level === 'medium') {
+                const weak = items.filter(i => (i.score / i.max) < 0.5).map(i => i.label.replace(/[①②③④⑤⑥⑦⑧]\s*/, ''));
+                advice = `⚠️ 综合评分中等，存在一定博弈价值，但需注意短板：${weak.length > 0 ? '「' + weak.join('、') + '」' : '无明显短板'}。建议降低仓位（≤10%）或等待条件改善后再介入。`;
+            } else {
+                const weak = items.filter(i => (i.score / i.max) < 0.5).map(i => i.label.replace(/[①②③④⑤⑥⑦⑧]\s*/, ''));
+                advice = `❌ 综合评分偏低，主线逻辑存疑。主要短板：${weak.length > 0 ? '「' + weak.join('、') + '」' : '多项条件不达标'}。建议放弃该机会，或重新审视逻辑，避免盲目试错。`;
+            }
+            extraNote.innerHTML = `📌 ${advice}`;
+        }
+
+        judgeBtn.addEventListener('click', judge);
+        window.addEventListener('load', judge);
+    })();
+</script>
+</body>
+</html>
